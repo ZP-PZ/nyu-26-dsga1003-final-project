@@ -1,0 +1,25 @@
+
+# Stage 0, download the model and dataset
+
+python script/0_download_model_and_data.py
+
+
+
+# Stage 1, merge, train test split, and prepare prompt-answer pair
+
+python script/1_prepare_data.py
+
+
+
+# Stage 2, train static residual weighting baseline and prompt-conditioned residual weighting
+
+python script/2_train_static.py
+python script/2_train_prompt_conditioned.py
+
+
+
+# Stage 3, evaluate the 3 model variants
+
+python script/3_eval_frozen_base.py
+python script/3_eval_static.py
+python script/3_eval_prompt_conditioned.py
