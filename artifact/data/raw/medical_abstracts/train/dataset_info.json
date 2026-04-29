@@ -1,0 +1,52 @@
+{
+  "builder_name": "parquet",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "medical_abstracts",
+  "dataset_size": 17943404,
+  "description": "",
+  "download_checksums": {
+    "hf://datasets/TimSchopf/medical_abstracts@d6afbd7ff4eb215db2470980023d7d7a3dfee7dc/data/train-00000-of-00001.parquet": {
+      "num_bytes": 7666434,
+      "checksum": null
+    },
+    "hf://datasets/TimSchopf/medical_abstracts@d6afbd7ff4eb215db2470980023d7d7a3dfee7dc/data/test-00000-of-00001.parquet": {
+      "num_bytes": 1940057,
+      "checksum": null
+    }
+  },
+  "download_size": 9606491,
+  "features": {
+    "condition_label": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "medical_abstract": {
+      "dtype": "string",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 27549895,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 14336197,
+      "num_examples": 11550,
+      "dataset_name": "medical_abstracts"
+    },
+    "test": {
+      "name": "test",
+      "num_bytes": 3607207,
+      "num_examples": 2888,
+      "dataset_name": "medical_abstracts"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}

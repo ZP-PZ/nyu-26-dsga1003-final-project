@@ -1,0 +1,18 @@
+{
+  "model": {
+    "model_id": "Qwen/Qwen3-0.6B",
+    "local_path": "artifact\\model\\qwen3_0_6b"
+  },
+  "datasets": {
+    "wikitext": {
+      "dataset_name": "wikitext",
+      "config_name": "wikitext-2-raw-v1",
+      "local_path": "artifact\\data\\raw\\wikitext_2_raw"
+    },
+    "domain_corpus": {
+      "dataset_name": "TimSchopf/medical_abstracts",
+      "config_name": "default",
+      "local_path": "artifact\\data\\raw\\medical_abstracts"
+    }
+  }
+}

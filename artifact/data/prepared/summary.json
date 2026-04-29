@@ -1,0 +1,69 @@
+{
+  "document_splits": {
+    "train": {
+      "num_documents": 16837,
+      "source_counts": {
+        "medical": 11550,
+        "wikitext": 5287
+      }
+    },
+    "validation": {
+      "num_documents": 2105,
+      "source_counts": {
+        "wikitext": 661,
+        "medical": 1444
+      }
+    },
+    "test": {
+      "num_documents": 2105,
+      "source_counts": {
+        "wikitext": 661,
+        "medical": 1444
+      }
+    }
+  },
+  "example_splits": {
+    "train": {
+      "num_examples": 20368,
+      "source_counts": {
+        "medical": 10486,
+        "wikitext": 9882
+      }
+    },
+    "validation": {
+      "num_examples": 2561,
+      "source_counts": {
+        "wikitext": 1175,
+        "medical": 1386
+      }
+    },
+    "test": {
+      "num_examples": 2555,
+      "source_counts": {
+        "wikitext": 1227,
+        "medical": 1328
+      }
+    }
+  },
+  "document_source_totals": {
+    "medical": 14438,
+    "wikitext": 6609
+  },
+  "example_source_totals": {
+    "medical": 13200,
+    "wikitext": 12284
+  },
+  "total_documents": 21047,
+  "total_examples": 25484,
+  "seed": 42,
+  "min_text_chars": 40,
+  "split_ratios": {
+    "train": 0.8,
+    "validation": 0.1,
+    "test": 0.1
+  },
+  "prompt_tokens": 96,
+  "answer_tokens": 96,
+  "window_step": 192,
+  "min_total_tokens": 192
+}

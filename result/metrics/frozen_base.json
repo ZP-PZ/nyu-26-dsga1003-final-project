@@ -1,0 +1,48 @@
+{
+  "validation": {
+    "num_examples": 2561,
+    "num_target_tokens": 245856,
+    "loss": 2.8008446989465345,
+    "perplexity": 16.458543415314804,
+    "by_source": {
+      "wikitext": {
+        "num_examples": 1175,
+        "num_target_tokens": 112800,
+        "loss": 3.3044187316657805,
+        "perplexity": 27.23270747680164
+      },
+      "medical": {
+        "num_examples": 1386,
+        "num_target_tokens": 133056,
+        "loss": 2.3739330482459975,
+        "perplexity": 10.73954849092607
+      }
+    }
+  },
+  "test": {
+    "num_examples": 2555,
+    "num_target_tokens": 245280,
+    "loss": 2.8221885696082665,
+    "perplexity": 16.8136081861605,
+    "by_source": {
+      "wikitext": {
+        "num_examples": 1227,
+        "num_target_tokens": 117792,
+        "loss": 3.297903030535929,
+        "perplexity": 27.055844114050366
+      },
+      "medical": {
+        "num_examples": 1328,
+        "num_target_tokens": 127488,
+        "loss": 2.3826541675621247,
+        "perplexity": 10.833618978456649
+      }
+    }
+  },
+  "model_type": "frozen_base",
+  "model_dir": "D:\\\u5927\u5b66\u8bfe\u7a0b graduate\\2_DS 1003\\nyu-26-dsga1003-final-project\\artifact\\model\\qwen3_0_6b",
+  "batch_size": 16,
+  "attn_implementation": "sdpa",
+  "device": "cuda",
+  "model_dtype": "torch.bfloat16"
+}

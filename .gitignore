@@ -21,16 +21,13 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Generated project artifacts
-artifact/
-result/
-
-# Large local model/data files
+# Local model and checkpoint binaries
+artifact/model/
+artifact/checkpoints/
 *.pt
 *.pth
 *.bin
 *.safetensors
-*.arrow
 
 # Logs and local runtime output
 *.log
