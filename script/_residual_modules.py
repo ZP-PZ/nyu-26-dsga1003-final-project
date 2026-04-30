@@ -146,14 +146,29 @@ class PromptConditionedResidualModel(ResidualScalingModelBase):
     ) -> None:
         super().__init__(base_model=base_model)
         del rms_norm_eps
-        self.prompt_hidden_cache: dict[str, torch.Tensor] = {}
+        self.prompt_representation_cache: dict[str, torch.Tensor] = {}
         self.conditioner = PromptConditionedMLP(
-            input_size=self.base_model.config.hidden_size,
+            input_size=self.base_model.config.hidden_size * 2,
             hidden_size=mlp_hidden_size,
             output_size=self.num_layers,
         )
 
-    def get_prompt_hidden(
+    @staticmethod
+    def _pool_prompt_hidden_states(
+        hidden_states: torch.Tensor,
+        attention_mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        last_token_hidden = hidden_states[:, -1, :]
+        if attention_mask is None:
+            mean_pooled_hidden = hidden_states.mean(dim=1)
+        else:
+            weights = attention_mask.unsqueeze(-1).to(hidden_states.dtype)
+            weighted_sum = (hidden_states * weights).sum(dim=1)
+            token_count = weights.sum(dim=1).clamp_min(1.0)
+            mean_pooled_hidden = weighted_sum / token_count
+        return torch.cat([last_token_hidden, mean_pooled_hidden], dim=-1)
+
+    def get_prompt_representation(
         self,
         prompt_input_ids: torch.Tensor,
         prompt_attention_mask: torch.Tensor | None = None,
@@ -166,16 +181,19 @@ class PromptConditionedResidualModel(ResidualScalingModelBase):
                     attention_mask=prompt_attention_mask,
                     use_cache=False,
                 )
-            return prompt_outputs.last_hidden_state[:, -1, :]
+            return self._pool_prompt_hidden_states(
+                hidden_states=prompt_outputs.last_hidden_state,
+                attention_mask=prompt_attention_mask,
+            )
 
-        cached_hidden_states: list[torch.Tensor | None] = [None] * len(example_id)
+        cached_representations: list[torch.Tensor | None] = [None] * len(example_id)
         missing_indices: list[int] = []
         for index, current_example_id in enumerate(example_id):
-            cached_hidden = self.prompt_hidden_cache.get(current_example_id)
-            if cached_hidden is None:
+            cached_representation = self.prompt_representation_cache.get(current_example_id)
+            if cached_representation is None:
                 missing_indices.append(index)
             else:
-                cached_hidden_states[index] = cached_hidden
+                cached_representations[index] = cached_representation
 
         if missing_indices:
             missing_index_tensor = torch.tensor(
@@ -193,15 +211,22 @@ class PromptConditionedResidualModel(ResidualScalingModelBase):
                     ),
                     use_cache=False,
                 )
-            missing_hidden_states = prompt_outputs.last_hidden_state[:, -1, :].detach().cpu()
+            missing_representations = self._pool_prompt_hidden_states(
+                hidden_states=prompt_outputs.last_hidden_state,
+                attention_mask=(
+                    None
+                    if prompt_attention_mask is None
+                    else prompt_attention_mask.index_select(0, missing_index_tensor)
+                ),
+            ).detach().cpu()
             for local_index, batch_index in enumerate(missing_indices):
                 current_example_id = example_id[batch_index]
-                cached_hidden = missing_hidden_states[local_index].clone()
-                self.prompt_hidden_cache[current_example_id] = cached_hidden
-                cached_hidden_states[batch_index] = cached_hidden
+                cached_representation = missing_representations[local_index].clone()
+                self.prompt_representation_cache[current_example_id] = cached_representation
+                cached_representations[batch_index] = cached_representation
 
-        stacked_hidden_states = torch.stack(cached_hidden_states, dim=0)
-        return stacked_hidden_states.to(
+        stacked_representations = torch.stack(cached_representations, dim=0)
+        return stacked_representations.to(
             device=prompt_input_ids.device,
             dtype=self.conditioner.fc1.weight.dtype,
         )
@@ -212,12 +237,12 @@ class PromptConditionedResidualModel(ResidualScalingModelBase):
         prompt_attention_mask: torch.Tensor | None = None,
         example_id: list[str] | None = None,
     ) -> torch.Tensor:
-        prompt_hidden = self.get_prompt_hidden(
+        prompt_representation = self.get_prompt_representation(
             prompt_input_ids=prompt_input_ids,
             prompt_attention_mask=prompt_attention_mask,
             example_id=example_id,
         )
-        raw_scales = self.conditioner(prompt_hidden)
+        raw_scales = self.conditioner(prompt_representation)
         return 1.0 + 0.1 * raw_scales
 
     def forward(

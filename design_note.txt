@@ -57,11 +57,22 @@ This note summarizes implementation and experiment-design decisions made after t
 
 9. Prompt-conditioned module design was concretized
 - Prompt-conditioned model uses:
-  - final prompt-token hidden state from the frozen base model
+  - a concatenated prompt representation from the frozen base model:
+    - final prompt-token hidden state
+    - mean-pooled final hidden state across prompt tokens
   - a small dense MLP
   - SiLU activation
-  - RMSNorm inside the MLP
 - The MLP predicts one residual scaling value per decoder layer.
+- The revised MLP is:
+  - `Linear(2048 -> 256)`
+  - `SiLU`
+  - `Linear(256 -> 256)`
+  - `SiLU`
+  - `Linear(256 -> 28)`
+- Input normalization was intentionally removed, because the prompt hidden state is already a relatively stable representation and we do not want to destroy potentially useful magnitude information.
+- The final scaling transform was revised from a bounded `1 + tanh(raw_output)` form to:
+  - `scale = 1.0 + 0.1 * raw_output`
+- This keeps the model centered near identity scaling while avoiding the stronger saturation behavior of `tanh`.
 
 10. Training defaults were chosen for RTX 4080 laptop 12GB VRAM
 - Current default training configuration is lightweight and laptop-friendly.

@@ -2,40 +2,40 @@
   "validation": {
     "num_examples": 2561,
     "num_target_tokens": 245856,
-    "loss": 2.7487243838287276,
-    "perplexity": 15.62269061140449,
+    "loss": 2.7414789997971214,
+    "perplexity": 15.509907290937612,
     "by_source": {
       "wikitext": {
         "num_examples": 1175,
         "num_target_tokens": 112800,
-        "loss": 3.2342700835322655,
-        "perplexity": 25.3878340160338
+        "loss": 3.2257482740050514,
+        "perplexity": 25.17240296516904
       },
       "medical": {
         "num_examples": 1386,
         "num_target_tokens": 133056,
-        "loss": 2.337096533734045,
-        "perplexity": 10.351138707770364
+        "loss": 2.3309332753328706,
+        "perplexity": 10.287538159799881
       }
     }
   },
   "test": {
     "num_examples": 2555,
     "num_target_tokens": 245280,
-    "loss": 2.7694273488939936,
-    "perplexity": 15.949497896530318,
+    "loss": 2.7624199665067093,
+    "perplexity": 15.8381243401675,
     "by_source": {
       "wikitext": {
         "num_examples": 1227,
         "num_target_tokens": 117792,
-        "loss": 3.229149471965376,
-        "perplexity": 25.258165055037523
+        "loss": 3.220064080172795,
+        "perplexity": 25.02972403899095
       },
       "medical": {
         "num_examples": 1328,
         "num_target_tokens": 127488,
-        "loss": 2.344669021636128,
-        "perplexity": 10.42982011141386
+        "loss": 2.3395816043438202,
+        "perplexity": 10.376894006964807
       }
     }
   },
