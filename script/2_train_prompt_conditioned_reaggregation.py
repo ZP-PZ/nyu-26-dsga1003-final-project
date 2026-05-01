@@ -1,11 +1,11 @@
-"""Train the static write-strength baseline."""
+"""Train the prompt-conditioned residual-stream re-aggregation model."""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-from _residual_modules import StaticWriteStrengthModel
+from _residual_modules import PromptConditionedResidualStreamReaggregationModel
 from _training_utils import (
     build_optimizer,
     configure_runtime,
@@ -21,16 +21,18 @@ from _training_utils import (
 DEFAULT_BATCH_SIZE = 8
 DEFAULT_GRADIENT_ACCUMULATION_STEPS = 4
 DEFAULT_NUM_EPOCHS = 1
-DEFAULT_LEARNING_RATE = 2e-3
+DEFAULT_LEARNING_RATE = 1e-3
 DEFAULT_WEIGHT_DECAY = 0
 DEFAULT_GRADIENT_CLIP_NORM = 1.0
 DEFAULT_LOG_EVERY = 50
+DEFAULT_MLP_HIDDEN_SIZE = 512
+DEFAULT_RMS_NORM_EPS = 1e-6
 DEFAULT_ATTN_IMPLEMENTATION = "sdpa"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train the static write-strength baseline."
+        description="Train the prompt-conditioned residual-stream re-aggregation model."
     )
     repo_root = Path(__file__).resolve().parent.parent
     parser.add_argument(
@@ -45,8 +47,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-dir",
-        default=str(repo_root / "artifact" / "checkpoints" / "static_write_strength"),
-        help="Directory to save the trained static write-strength model and training history.",
+        default=str(
+            repo_root
+            / "artifact"
+            / "checkpoints"
+            / "prompt_conditioned_residual_stream_reaggregation"
+        ),
+        help="Directory to save the trained prompt-conditioned re-aggregation model and training history.",
     )
     parser.add_argument(
         "--batch-size",
@@ -100,6 +107,18 @@ def parse_args() -> argparse.Namespace:
         help="Optional cap on the total number of training steps.",
     )
     parser.add_argument(
+        "--mlp-hidden-size",
+        type=int,
+        default=DEFAULT_MLP_HIDDEN_SIZE,
+        help=f"Hidden size of the prompt-conditioned MLP. Default: {DEFAULT_MLP_HIDDEN_SIZE}",
+    )
+    parser.add_argument(
+        "--rms-norm-eps",
+        type=float,
+        default=DEFAULT_RMS_NORM_EPS,
+        help=f"RMSNorm epsilon used in the MLP. Default: {DEFAULT_RMS_NORM_EPS}",
+    )
+    parser.add_argument(
         "--attn-implementation",
         default=DEFAULT_ATTN_IMPLEMENTATION,
         help=(
@@ -136,7 +155,11 @@ def main() -> None:
         model_dtype=model_dtype,
         attn_implementation=args.attn_implementation,
     )
-    model = StaticWriteStrengthModel(base_model=base_model).to(device)
+    model = PromptConditionedResidualStreamReaggregationModel(
+        base_model=base_model,
+        mlp_hidden_size=args.mlp_hidden_size,
+        rms_norm_eps=args.rms_norm_eps,
+    ).to(device)
 
     optimizer = build_optimizer(
         model=model,
@@ -158,7 +181,7 @@ def main() -> None:
     )
 
     train_config = {
-        "model_type": "static_write_strength",
+        "model_type": "prompt_conditioned_residual_stream_reaggregation",
         "base_model_dir": args.model_dir,
         "train_data": args.train_data,
         "output_dir": args.output_dir,
@@ -171,10 +194,13 @@ def main() -> None:
         "gradient_clip_norm": args.gradient_clip_norm,
         "log_every": args.log_every,
         "max_train_steps": args.max_train_steps,
+        "mlp_hidden_size": args.mlp_hidden_size,
+        "rms_norm_eps": args.rms_norm_eps,
         "attn_implementation": args.attn_implementation,
         "device": str(device),
         "model_dtype": str(model_dtype),
         "num_layers": model.num_layers,
+        "num_reaggregation_weights": model.num_reaggregation_weights,
     }
     save_training_outputs(
         output_dir=args.output_dir,

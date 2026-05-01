@@ -1,11 +1,11 @@
-"""Train the prompt-conditioned residual-scaling model."""
+"""Train the prompt-conditioned write-strength model."""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-from _residual_modules import PromptConditionedResidualModel
+from _residual_modules import PromptConditionedWriteStrengthModel
 from _training_utils import (
     build_optimizer,
     configure_runtime,
@@ -25,14 +25,14 @@ DEFAULT_LEARNING_RATE = 1e-3
 DEFAULT_WEIGHT_DECAY = 0
 DEFAULT_GRADIENT_CLIP_NORM = 1.0
 DEFAULT_LOG_EVERY = 50
-DEFAULT_MLP_HIDDEN_SIZE = 256
+DEFAULT_MLP_HIDDEN_SIZE = 512
 DEFAULT_RMS_NORM_EPS = 1e-6
 DEFAULT_ATTN_IMPLEMENTATION = "sdpa"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train the prompt-conditioned residual-weighting model."
+        description="Train the prompt-conditioned write-strength model."
     )
     repo_root = Path(__file__).resolve().parent.parent
     parser.add_argument(
@@ -47,8 +47,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-dir",
-        default=str(repo_root / "artifact" / "checkpoints" / "prompt_conditioned"),
-        help="Directory to save the trained prompt-conditioned model and training history.",
+        default=str(repo_root / "artifact" / "checkpoints" / "prompt_conditioned_write_strength"),
+        help="Directory to save the trained prompt-conditioned write-strength model and training history.",
     )
     parser.add_argument(
         "--batch-size",
@@ -150,7 +150,7 @@ def main() -> None:
         model_dtype=model_dtype,
         attn_implementation=args.attn_implementation,
     )
-    model = PromptConditionedResidualModel(
+    model = PromptConditionedWriteStrengthModel(
         base_model=base_model,
         mlp_hidden_size=args.mlp_hidden_size,
         rms_norm_eps=args.rms_norm_eps,
@@ -176,7 +176,7 @@ def main() -> None:
     )
 
     train_config = {
-        "model_type": "prompt_conditioned_residual",
+        "model_type": "prompt_conditioned_write_strength",
         "base_model_dir": args.model_dir,
         "train_data": args.train_data,
         "output_dir": args.output_dir,

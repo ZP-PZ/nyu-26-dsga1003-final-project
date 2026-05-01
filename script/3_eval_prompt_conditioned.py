@@ -1,4 +1,4 @@
-"""Evaluate the trained prompt-conditioned residual model on validation and test splits."""
+"""Evaluate the trained prompt-conditioned write-strength model on validation and test splits."""
 
 from __future__ import annotations
 
@@ -9,20 +9,26 @@ from _eval_utils import (
     DEFAULT_EVAL_BATCH_SIZE,
     create_runtime,
     evaluate_model,
-    load_prompt_conditioned_model_for_eval,
+    load_prompt_conditioned_write_strength_model_for_eval,
     save_metrics,
 )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate the trained prompt-conditioned residual model."
+        description="Evaluate the trained prompt-conditioned write-strength model."
     )
     repo_root = Path(__file__).resolve().parent.parent
     parser.add_argument(
         "--checkpoint-path",
-        default=str(repo_root / "artifact" / "checkpoints" / "prompt_conditioned" / "trained_model.pt"),
-        help="Path to the saved prompt-conditioned checkpoint.",
+        default=str(
+            repo_root
+            / "artifact"
+            / "checkpoints"
+            / "prompt_conditioned_write_strength"
+            / "trained_model.pt"
+        ),
+        help="Path to the saved prompt-conditioned write-strength checkpoint.",
     )
     parser.add_argument(
         "--model-dir",
@@ -41,7 +47,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-path",
-        default=str(repo_root / "result" / "metrics" / "prompt_conditioned.json"),
+        default=str(
+            repo_root / "result" / "metrics" / "prompt_conditioned_write_strength.json"
+        ),
         help="Path to save evaluation metrics as JSON.",
     )
     parser.add_argument(
@@ -63,7 +71,7 @@ def main() -> None:
     device, model_dtype = create_runtime()
     print(f"[setup] device={device} model_dtype={model_dtype}")
 
-    model, checkpoint = load_prompt_conditioned_model_for_eval(
+    model, checkpoint = load_prompt_conditioned_write_strength_model_for_eval(
         checkpoint_path=args.checkpoint_path,
         model_dir=args.model_dir,
         device=device,
@@ -79,7 +87,7 @@ def main() -> None:
         device=device,
         model_dtype=model_dtype,
     )
-    metrics["model_type"] = "prompt_conditioned_residual"
+    metrics["model_type"] = "prompt_conditioned_write_strength"
     metrics["checkpoint_path"] = args.checkpoint_path
     metrics["batch_size"] = args.batch_size
     metrics["device"] = str(device)

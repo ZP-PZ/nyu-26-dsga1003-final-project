@@ -10,7 +10,12 @@ import torch
 import torch.nn.functional as F
 from tqdm.auto import tqdm
 
-from _residual_modules import PromptConditionedResidualModel, StaticResidualModel
+from _residual_modules import (
+    PromptConditionedResidualStreamReaggregationModel,
+    PromptConditionedWriteStrengthModel,
+    StaticResidualStreamReaggregationModel,
+    StaticWriteStrengthModel,
+)
 from _training_utils import (
     configure_runtime,
     create_autocast_context,
@@ -93,7 +98,7 @@ def load_frozen_base_for_eval(
     return model
 
 
-def load_static_model_for_eval(
+def load_static_write_strength_model_for_eval(
     checkpoint_path: str | Path,
     model_dir: str | Path | None,
     device: torch.device,
@@ -114,13 +119,13 @@ def load_static_model_for_eval(
         model_dtype=model_dtype,
         attn_implementation=resolved_attn,
     )
-    model = StaticResidualModel(base_model=base_model).to(device)
+    model = StaticWriteStrengthModel(base_model=base_model).to(device)
     load_trainable_parameters(model, checkpoint["trainable_state_dict"])
     model.eval()
     return model, checkpoint
 
 
-def load_prompt_conditioned_model_for_eval(
+def load_prompt_conditioned_write_strength_model_for_eval(
     checkpoint_path: str | Path,
     model_dir: str | Path | None,
     device: torch.device,
@@ -141,7 +146,65 @@ def load_prompt_conditioned_model_for_eval(
         model_dtype=model_dtype,
         attn_implementation=resolved_attn,
     )
-    model = PromptConditionedResidualModel(
+    model = PromptConditionedWriteStrengthModel(
+        base_model=base_model,
+        mlp_hidden_size=train_config["mlp_hidden_size"],
+        rms_norm_eps=train_config["rms_norm_eps"],
+    ).to(device)
+    load_trainable_parameters(model, checkpoint["trainable_state_dict"])
+    model.eval()
+    return model, checkpoint
+
+
+def load_static_reaggregation_model_for_eval(
+    checkpoint_path: str | Path,
+    model_dir: str | Path | None,
+    device: torch.device,
+    model_dtype: torch.dtype,
+    attn_implementation: str | None,
+):
+    checkpoint = load_checkpoint(checkpoint_path)
+    train_config = checkpoint["train_config"]
+    resolved_model_dir = model_dir or train_config["base_model_dir"]
+    resolved_attn = attn_implementation or train_config.get(
+        "attn_implementation",
+        DEFAULT_ATTN_IMPLEMENTATION,
+    )
+
+    base_model = load_frozen_base_model(
+        model_dir=resolved_model_dir,
+        device=device,
+        model_dtype=model_dtype,
+        attn_implementation=resolved_attn,
+    )
+    model = StaticResidualStreamReaggregationModel(base_model=base_model).to(device)
+    load_trainable_parameters(model, checkpoint["trainable_state_dict"])
+    model.eval()
+    return model, checkpoint
+
+
+def load_prompt_conditioned_reaggregation_model_for_eval(
+    checkpoint_path: str | Path,
+    model_dir: str | Path | None,
+    device: torch.device,
+    model_dtype: torch.dtype,
+    attn_implementation: str | None,
+):
+    checkpoint = load_checkpoint(checkpoint_path)
+    train_config = checkpoint["train_config"]
+    resolved_model_dir = model_dir or train_config["base_model_dir"]
+    resolved_attn = attn_implementation or train_config.get(
+        "attn_implementation",
+        DEFAULT_ATTN_IMPLEMENTATION,
+    )
+
+    base_model = load_frozen_base_model(
+        model_dir=resolved_model_dir,
+        device=device,
+        model_dtype=model_dtype,
+        attn_implementation=resolved_attn,
+    )
+    model = PromptConditionedResidualStreamReaggregationModel(
         base_model=base_model,
         mlp_hidden_size=train_config["mlp_hidden_size"],
         rms_norm_eps=train_config["rms_norm_eps"],
@@ -308,17 +371,25 @@ def greedy_generate_continuation(
 ) -> torch.Tensor:
     model.eval()
     generated = prompt_input_ids.clone()
+    prompt_conditioned_models = (
+        PromptConditionedWriteStrengthModel,
+        PromptConditionedResidualStreamReaggregationModel,
+    )
+    static_models = (
+        StaticWriteStrengthModel,
+        StaticResidualStreamReaggregationModel,
+    )
 
     with torch.inference_mode():
         for _ in range(max_new_tokens):
-            if isinstance(model, PromptConditionedResidualModel):
+            if isinstance(model, prompt_conditioned_models):
                 outputs = model(
                     input_ids=generated,
                     labels=None,
                     prompt_input_ids=prompt_input_ids,
                     example_id=None,
                 )
-            elif isinstance(model, StaticResidualModel):
+            elif isinstance(model, static_models):
                 outputs = model(
                     input_ids=generated,
                     labels=None,
@@ -339,14 +410,26 @@ def greedy_generate_continuation(
 
 
 def forward_eval_model(model: torch.nn.Module, batch: dict):
-    if isinstance(model, PromptConditionedResidualModel):
+    if isinstance(
+        model,
+        (
+            PromptConditionedWriteStrengthModel,
+            PromptConditionedResidualStreamReaggregationModel,
+        ),
+    ):
         return model(
             input_ids=batch["input_ids"],
             labels=batch["labels"],
             prompt_input_ids=batch["prompt_input_ids"],
             example_id=batch["example_id"],
         )
-    if isinstance(model, StaticResidualModel):
+    if isinstance(
+        model,
+        (
+            StaticWriteStrengthModel,
+            StaticResidualStreamReaggregationModel,
+        ),
+    ):
         return model(
             input_ids=batch["input_ids"],
             labels=batch["labels"],
@@ -362,3 +445,8 @@ def save_metrics(output_path: str | Path, metrics: dict) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+
+
+# Backward-compatible loader aliases.
+load_static_model_for_eval = load_static_write_strength_model_for_eval
+load_prompt_conditioned_model_for_eval = load_prompt_conditioned_write_strength_model_for_eval

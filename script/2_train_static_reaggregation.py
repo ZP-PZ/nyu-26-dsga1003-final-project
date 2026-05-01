@@ -1,11 +1,11 @@
-"""Train the static write-strength baseline."""
+"""Train the static residual-stream re-aggregation model."""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-from _residual_modules import StaticWriteStrengthModel
+from _residual_modules import StaticResidualStreamReaggregationModel
 from _training_utils import (
     build_optimizer,
     configure_runtime,
@@ -30,7 +30,7 @@ DEFAULT_ATTN_IMPLEMENTATION = "sdpa"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Train the static write-strength baseline."
+        description="Train the static residual-stream re-aggregation model."
     )
     repo_root = Path(__file__).resolve().parent.parent
     parser.add_argument(
@@ -45,8 +45,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-dir",
-        default=str(repo_root / "artifact" / "checkpoints" / "static_write_strength"),
-        help="Directory to save the trained static write-strength model and training history.",
+        default=str(
+            repo_root / "artifact" / "checkpoints" / "static_residual_stream_reaggregation"
+        ),
+        help="Directory to save the trained static re-aggregation model and training history.",
     )
     parser.add_argument(
         "--batch-size",
@@ -136,7 +138,7 @@ def main() -> None:
         model_dtype=model_dtype,
         attn_implementation=args.attn_implementation,
     )
-    model = StaticWriteStrengthModel(base_model=base_model).to(device)
+    model = StaticResidualStreamReaggregationModel(base_model=base_model).to(device)
 
     optimizer = build_optimizer(
         model=model,
@@ -158,7 +160,7 @@ def main() -> None:
     )
 
     train_config = {
-        "model_type": "static_write_strength",
+        "model_type": "static_residual_stream_reaggregation",
         "base_model_dir": args.model_dir,
         "train_data": args.train_data,
         "output_dir": args.output_dir,
@@ -175,6 +177,7 @@ def main() -> None:
         "device": str(device),
         "model_dtype": str(model_dtype),
         "num_layers": model.num_layers,
+        "num_reaggregation_weights": model.num_reaggregation_weights,
     }
     save_training_outputs(
         output_dir=args.output_dir,

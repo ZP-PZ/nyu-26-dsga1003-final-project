@@ -1,4 +1,4 @@
-"""Evaluate the trained static write-strength model on validation and test splits."""
+"""Evaluate the trained static re-aggregation model on validation and test splits."""
 
 from __future__ import annotations
 
@@ -9,22 +9,26 @@ from _eval_utils import (
     DEFAULT_EVAL_BATCH_SIZE,
     create_runtime,
     evaluate_model,
-    load_static_write_strength_model_for_eval,
+    load_static_reaggregation_model_for_eval,
     save_metrics,
 )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate the trained static write-strength model."
+        description="Evaluate the trained static residual-stream re-aggregation model."
     )
     repo_root = Path(__file__).resolve().parent.parent
     parser.add_argument(
         "--checkpoint-path",
         default=str(
-            repo_root / "artifact" / "checkpoints" / "static_write_strength" / "trained_model.pt"
+            repo_root
+            / "artifact"
+            / "checkpoints"
+            / "static_residual_stream_reaggregation"
+            / "trained_model.pt"
         ),
-        help="Path to the saved static write-strength checkpoint.",
+        help="Path to the saved static re-aggregation checkpoint.",
     )
     parser.add_argument(
         "--model-dir",
@@ -43,7 +47,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output-path",
-        default=str(repo_root / "result" / "metrics" / "static_write_strength.json"),
+        default=str(
+            repo_root / "result" / "metrics" / "static_residual_stream_reaggregation.json"
+        ),
         help="Path to save evaluation metrics as JSON.",
     )
     parser.add_argument(
@@ -65,7 +71,7 @@ def main() -> None:
     device, model_dtype = create_runtime()
     print(f"[setup] device={device} model_dtype={model_dtype}")
 
-    model, checkpoint = load_static_write_strength_model_for_eval(
+    model, checkpoint = load_static_reaggregation_model_for_eval(
         checkpoint_path=args.checkpoint_path,
         model_dir=args.model_dir,
         device=device,
@@ -81,7 +87,7 @@ def main() -> None:
         device=device,
         model_dtype=model_dtype,
     )
-    metrics["model_type"] = "static_write_strength"
+    metrics["model_type"] = "static_residual_stream_reaggregation"
     metrics["checkpoint_path"] = args.checkpoint_path
     metrics["batch_size"] = args.batch_size
     metrics["device"] = str(device)

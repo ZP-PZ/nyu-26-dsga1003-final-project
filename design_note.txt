@@ -44,19 +44,21 @@ This note summarizes implementation and experiment-design decisions made after t
 - Base model remains `Qwen/Qwen3-0.6B`.
 - The local tokenizer and model are downloaded once and stored under `artifact/model/qwen3_0_6b`.
 
-7. Baselines and training scope were clarified
-- Stage 2 trains two models only:
-  - static residual weighting baseline
-  - prompt-conditioned residual weighting model
+7. Baselines and training scope evolved
+- Stage 2 now includes four lightweight fine-tuning variants:
+  - static write-strength scaling
+  - prompt-conditioned write-strength scaling
+  - static residual-stream re-aggregation
+  - prompt-conditioned residual-stream re-aggregation
 - The untouched frozen Qwen model is treated as an evaluation baseline, not a trainable baseline.
 
-8. Static residual implementation was concretized
-- Static baseline uses one learned scalar residual multiplier per decoder layer.
+8. Write-strength scaling implementation was concretized
+- Static write-strength scaling uses one learned scalar residual multiplier per decoder layer.
 - The base Qwen model is frozen.
 - Layer residual scaling is applied by wrapping decoder layer outputs and rescaling each layer delta relative to its input.
 
-9. Prompt-conditioned module design was concretized
-- Prompt-conditioned model uses:
+9. Prompt-conditioned write-strength module design was concretized
+- Prompt-conditioned write-strength scaling uses:
   - a concatenated prompt representation from the frozen base model:
     - final prompt-token hidden state
     - mean-pooled final hidden state across prompt tokens
@@ -64,17 +66,32 @@ This note summarizes implementation and experiment-design decisions made after t
   - SiLU activation
 - The MLP predicts one residual scaling value per decoder layer.
 - The revised MLP is:
-  - `Linear(2048 -> 256)`
+  - `Linear(2048 -> 512)`
   - `SiLU`
-  - `Linear(256 -> 256)`
+  - `Linear(512 -> 512)`
   - `SiLU`
-  - `Linear(256 -> 28)`
+  - `Linear(512 -> 28)`
 - Input normalization was intentionally removed, because the prompt hidden state is already a relatively stable representation and we do not want to destroy potentially useful magnitude information.
 - The final scaling transform was revised from a bounded `1 + tanh(raw_output)` form to:
   - `scale = 1.0 + 0.1 * raw_output`
 - This keeps the model centered near identity scaling while avoiding the stronger saturation behavior of `tanh`.
 
-10. Training defaults were chosen for RTX 4080 laptop 12GB VRAM
+10. Residual-stream re-aggregation implementation was added
+- This second model family moves beyond layerwise write-strength scaling and instead re-aggregates the residual stream at each layer.
+- For target layer `l`, the model:
+  - keeps the token embedding stream as a fixed base
+  - collects the write produced by each earlier decoder layer up to layer `l`
+  - forms the residual stream for layer `l` as:
+    - embedding stream + weighted sum of all collected writes up to `l`
+- The static re-aggregation variant directly learns one weight for each valid `(target layer, source write)` pair in the lower-triangular layout.
+- The prompt-conditioned re-aggregation variant predicts the same lower-triangular weight set from the prompt representation using a small MLP.
+- Unlike the Kimi paper, this project does not apply a softmax or probability-style normalization over those re-aggregation weights.
+- The static version starts from all-one weights, matching the ordinary residual stream at initialization.
+- The prompt-conditioned version uses:
+  - `weight = 1.0 + 0.1 * raw_output`
+- This keeps the prompt-conditioned re-aggregation rule centered near the standard residual stream while remaining easy to interpret.
+
+11. Training defaults were chosen for RTX 4080 laptop 12GB VRAM
 - Current default training configuration is lightweight and laptop-friendly.
 - Important defaults:
   - micro-batch size = 8
@@ -83,7 +100,7 @@ This note summarizes implementation and experiment-design decisions made after t
   - short sequence setup from preprocessing
 - Training utilities also use mixed precision and conservative runtime optimizations.
 
-11. Training acceleration work was added
+12. Training acceleration work was added
 - Implemented speed-oriented changes include:
   - progress bars
   - mixed precision autocast
@@ -91,14 +108,16 @@ This note summarizes implementation and experiment-design decisions made after t
   - modern `torch.amp.GradScaler`
   - pinned-memory dataloader path on CUDA
   - TF32-enabled runtime on CUDA
-  - SDPA attention backend by default
+- SDPA attention backend by default
   - lower Python overhead in Arrow dataset loading
   - prompt hidden-state caching for the prompt-conditioned model
 
-12. Stage 2 and Stage 3 script structure was finalized
+13. Stage 2 and Stage 3 script structure was finalized
 - Training scripts:
   - `script/2_train_static.py`
   - `script/2_train_prompt_conditioned.py`
+  - `script/2_train_static_reaggregation.py`
+  - `script/2_train_prompt_conditioned_reaggregation.py`
 - Shared training helpers:
   - `script/_training_utils.py`
   - `script/_residual_modules.py`
@@ -106,10 +125,12 @@ This note summarizes implementation and experiment-design decisions made after t
   - `script/3_eval_frozen_base.py`
   - `script/3_eval_static.py`
   - `script/3_eval_prompt_conditioned.py`
+  - `script/3_eval_static_reaggregation.py`
+  - `script/3_eval_prompt_conditioned_reaggregation.py`
 - Shared evaluation helpers:
   - `script/_eval_utils.py`
 
-13. Evaluation outputs were defined more concretely than in the proposal
+14. Evaluation outputs were defined more concretely than in the proposal
 - Evaluation currently records:
   - validation loss
   - validation perplexity
@@ -118,7 +139,7 @@ This note summarizes implementation and experiment-design decisions made after t
   - per-source metrics for `wikitext` and `medical`
 - This means mixed and per-domain comparisons are already part of the implemented evaluation path.
 
-14. Repository tracking policy was decided
+15. Repository tracking policy was decided
 - The repository now keeps:
   - source code
   - processed data
@@ -130,10 +151,11 @@ This note summarizes implementation and experiment-design decisions made after t
   - `.pt` and related large binary artifacts
   - caches and Python temporary files
 
-15. Current experiment story
+16. Current experiment story
 - The actual implemented experiment is now best described as:
   - a frozen Qwen3-0.6B language model
   - trained on mixed general-domain and specialized-domain continuation data
-  - comparing static layerwise residual scaling against prompt-conditioned layerwise residual scaling
+  - comparing write-strength scaling against residual-stream re-aggregation
+  - comparing static versus prompt-conditioned parameterizations inside each family
   - evaluating both overall and per-domain performance
 - This is fully consistent with the core research question in the proposal, but is now much more operationally defined.

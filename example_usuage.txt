@@ -11,15 +11,19 @@ python script/1_prepare_data.py
 
 
 
-# Stage 2, train static residual weighting baseline and prompt-conditioned residual weighting
+# Stage 2, train 4 fine-tuning variants
 
 python script/2_train_static.py
 python script/2_train_prompt_conditioned.py
+python script/2_train_static_reaggregation.py
+python script/2_train_prompt_conditioned_reaggregation.py
 
 
 
-# Stage 3, evaluate the 3 model variants
+# Stage 3, evaluate the 5 model variants
 
 python script/3_eval_frozen_base.py
 python script/3_eval_static.py
 python script/3_eval_prompt_conditioned.py
+python script/3_eval_static_reaggregation.py
+python script/3_eval_prompt_conditioned_reaggregation.py
