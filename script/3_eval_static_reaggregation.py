@@ -6,12 +6,13 @@ import argparse
 from pathlib import Path
 
 from _eval_utils import (
-    DEFAULT_EVAL_BATCH_SIZE,
     create_runtime,
     evaluate_model,
     load_static_reaggregation_model_for_eval,
     save_metrics,
 )
+
+DEFAULT_REAGGREGATION_EVAL_BATCH_SIZE = 12
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,8 +56,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=DEFAULT_EVAL_BATCH_SIZE,
-        help=f"Evaluation batch size. Default: {DEFAULT_EVAL_BATCH_SIZE}",
+        default=DEFAULT_REAGGREGATION_EVAL_BATCH_SIZE,
+        help=(
+            "Evaluation batch size. "
+            f"Default: {DEFAULT_REAGGREGATION_EVAL_BATCH_SIZE}"
+        ),
     )
     parser.add_argument(
         "--attn-implementation",
